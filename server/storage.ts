@@ -1,37 +1,39 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import type { Medication } from "@shared/schema";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getAllMedications(): Promise<Medication[]>;
+  getMedicationById(id: string): Promise<Medication | undefined>;
+  searchMedications(query: string): Promise<Medication[]>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private medications: Map<string, Medication>;
 
   constructor() {
-    this.users = new Map();
+    this.medications = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  setMedications(medications: Medication[]) {
+    this.medications.clear();
+    medications.forEach(med => {
+      this.medications.set(med.id, med);
+    });
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+  async getAllMedications(): Promise<Medication[]> {
+    return Array.from(this.medications.values());
+  }
+
+  async getMedicationById(id: string): Promise<Medication | undefined> {
+    return this.medications.get(id);
+  }
+
+  async searchMedications(query: string): Promise<Medication[]> {
+    const lowerQuery = query.toLowerCase();
+    return Array.from(this.medications.values()).filter(med =>
+      med.genericName.toLowerCase().includes(lowerQuery) ||
+      med.brandNames.toLowerCase().includes(lowerQuery)
     );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
   }
 }
 

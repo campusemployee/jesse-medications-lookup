@@ -1,0 +1,11 @@
+id,genericName,brandNames,primaryUse,howToTake,warnings,sideEffects
+1,Lisinopril,"Prinivil, Zestril",Controls high blood pressure,Take once daily with or without food,Do not stop suddenly. May cause dizziness when standing up.,"Dry cough, dizziness, headache"
+2,Metformin,Glucophage,Controls blood sugar in type 2 diabetes,Take with meals to reduce stomach upset,May cause low blood sugar if not eating regularly.,"Nausea, diarrhea, stomach pain"
+3,Amlodipine,Norvasc,Treats high blood pressure and chest pain,"Take once daily, same time each day",May cause swelling in ankles/feet.,"Dizziness, flushing, swelling"
+4,Atorvastatin,Lipitor,Lowers cholesterol,Take once daily with or without food,Avoid grapefruit juice. Report muscle pain immediately.,"Muscle aches, digestive issues"
+5,Levothyroxine,Synthroid,Replaces thyroid hormone,Take in morning 30 minutes before eating,Take on empty stomach. Very important to take daily.,Usually none if dose is correct
+6,Omeprazole,Prilosec,Reduces stomach acid for heartburn/GERD,Take 30 minutes before first meal of day,Not for immediate heartburn relief. Long-term use may affect bone health.,"Headache, stomach pain, nausea"
+7,Sertraline,Zoloft,Treats depression and anxiety,Take once daily with or without food,Do NOT stop suddenly. May take 4-6 weeks to work.,"Nausea, drowsiness, dry mouth, sexual side effects"
+8,Azithromycin,"Z-Pak, Zithromax",Antibiotic for bacterial infections,Take full course even if feeling better,Take on empty stomach if possible.,"Stomach upset, diarrhea"
+9,Gabapentin,Neurontin,Treats nerve pain and seizures,Take 2-3 times daily as prescribed,May cause drowsiness. Do not drive until you know how it affects you.,"Drowsiness, dizziness, swelling"
+10,Hydrochlorothiazide,"HCTZ, Microzide",Treats high blood pressure (water pill),Take in morning to avoid nighttime bathroom trips,May cause dehydration. Drink plenty of water.,Increased urination and dizziness
