@@ -1,0 +1,230 @@
+PRD: Medication Lookup Tool
+1. User Problem Statement
+Who is this website for? This tool is for Maria Rodriguez (volunteer coordinator), Dr. James Chen (physician), and the 12,000 low-income patients at Hope Street Health Center in South Los Angeles. These patients are primarily uninsured or underinsured individuals from marginalized communities who lost access to basic healthcare information during the 43-day government shutdown.
+What problem are they facing? The clinic's Electronic Health Records system and medication database subscriptions lapsed during the shutdown. Patients are showing up with unlabeled pill bottles, expired prescriptions, and no memory of what their medications are for. Without access to expensive medication databases, clinic staff can't quickly answer basic questions like "What is this pill?" or "Can I take this with food?"
+Why do they need this tool?
+Medication errors kill 7,000+ Americans annually and send 1.3 million to ERs
+A single ER visit can cost $2,000-$10,000 financially devastating for patients earning $18,000/year
+Hope Street patients can't afford $200 pharmacist consultations or telehealth services
+Many patients have limited English proficiency and need simple, clear medication information
+Dr. Chen is the only physician for 12,000 patients. He can't spend 15 minutes explaining every pill
+
+2. Core Features List
+Feature 1: Medication Search Function
+Users will type a medication name into a search bar and see instant results from your CSV database. The search will be case-insensitive (works whether they type "Lisinopril" or "lisinopril") and will show "No results found" if the medication isn't in the database yet.
+Technical Implementation:
+HTML input field with real-time search
+Display matching results in clean, readable format
+
+
+Feature 2: Medication Information Display
+Each medication shows 6 critical pieces of information in large, readable text:
+Generic Name (e.g., "Lisinopril")
+Brand Names (e.g., "Prinivil, Zestril")
+Primary Use (in plain English: "Controls high blood pressure")
+How to Take ("Take with or without food, usually once daily")
+Important Warnings ("Do not stop suddenly. May cause dizziness when standing up.")
+Common Side Effects ("Dry cough, dizziness, headache")
+Feature 3: Mobile-Responsive Design
+The tool must work on:
+Maria's clinic computer (1024px desktop monitor)
+Dr. Chen's iPad (768px tablet)
+Patients' smartphones (320px-428px mobile screens)
+Requirements:
+Buttons minimum 44px tall (easy to tap with fingers)
+Text minimum 16px font size (readable without glasses)
+No horizontal scrolling on any device
+High contrast colors (many patients have vision issues)
+Feature 4: Simple, Accessible Interface
+Designed for:
+Users with limited digital literacy
+Non-English speakers (simple vocabulary)
+Users with vision impairments
+Users under stress/crisis
+Requirements:
+Clean, uncluttered layout
+Large, clear buttons
+No medical jargon
+Consistent color coding (red for warnings, blue for info)
+"Reset" button to clear search and start over
+
+
+3. Initial Medication Database (CSV Format)
+Create a CSV file with these 10 common medications seen at Hope Street Health. You'll expand this database over time as the clinic identifies more medications patients frequently ask about.
+Generic Name
+Brand Names
+Primary Use
+How to Take
+Warnings
+Common Side Effects
+Lisinopril
+Prinivil, Zestril
+Controls high blood pressure
+Take once daily with or without food
+Do not stop suddenly. May cause dizziness when standing.
+Dry cough, dizziness, headache
+Metformin
+Glucophage
+Controls blood sugar in type 2 diabetes
+Take with meals to reduce stomach upset
+May cause low blood sugar if not eating regularly.
+Nausea, diarrhea, stomach pain
+Amlodipine
+Norvasc
+Treats high blood pressure and chest pain
+Take once daily, same time each day
+May cause swelling in ankles/feet.
+Dizziness, flushing, swelling
+Atorvastatin
+Lipitor
+Lowers cholesterol
+Take once daily, with or without food
+Avoid grapefruit juice. Report muscle pain immediately.
+Muscle aches, digestive issues
+Levothyroxine
+Synthroid
+Replaces thyroid hormone
+Take in morning 30 minutes before eating
+Take on empty stomach. Very important to take daily.
+Usually none if dose is correct
+Omeprazole
+Prilosec
+Reduces stomach acid for heartburn/GERD
+Take 30 minutes before first meal of day
+Not for immediate heartburn relief. Long-term use may affect bone health.
+Headache, stomach pain, nausea
+Sertraline
+Zoloft
+Treats depression and anxiety
+Take once daily, with or without food
+Do NOT stop suddenly. May take 4-6 weeks to work.
+Nausea, drowsiness, dry mouth, sexual side effects
+Azithromycin
+Z-Pak, Zithromax
+Antibiotic for bacterial infections
+Take full course even if feeling better
+Take on empty stomach if possible.
+Stomach upset, diarrhea
+Gabapentin
+Neurontin
+Treats nerve pain and seizures
+Take 2-3 times daily as prescribed
+May cause drowsiness. Do not drive until you know how it affects you.
+Drowsiness, dizziness, swelling
+Hydrochlorothiazide
+HCTZ, Microzide
+Treats high blood pressure (water pill)
+Take in morning to avoid nighttime bathroom trips
+May cause dehydration. Drink plenty of water.
+Increased urination, dizziness
+
+Why these 10 medications?
+These are the most commonly prescribed drugs at community health centers
+They represent different categories (blood pressure, diabetes, mental health, antibiotics)
+Patients frequently ask about these specific medications
+Maria has identified these as the highest priority based on patient volume
+
+
+4. Technical Requirements
+Data Storage
+CSV file (medications.csv) - Stores medication records
+Loaded via JavaScript fetch() or Papa Parse library
+Start with 10 medications, expand database over time
+No backend database needed
+5. Success Criteria
+Your medication lookup tool works if:
+✅ Search Function
+User can type medication name and see results in under 1 second
+Search works with partial names (typing "Lisin" shows "Lisinopril")
+Search is case-insensitive (LISINOPRIL = lisinopril = Lisinopril)
+Displays clear "No medication found" message for non-existent drugs
+✅ Information Display
+All 6 information fields display clearly for each medication
+Text is readable without zooming on mobile devices
+Warning information is visually distinct (different color/styling)
+No information is cut off or requires scrolling horizontally
+✅ Mobile Responsiveness
+Works perfectly on iPhone SE (320px width)
+Works perfectly on iPad (768px width)
+Works perfectly on desktop (1024px+ width)
+Touch targets (buttons) are minimum 44px x 44px
+Font size is minimum 16px on mobile
+✅ User Experience
+Maria (who's not tech-savvy) can find a medication in under 30 seconds
+Page loads in under 2 seconds on slow clinic internet
+No broken links, missing images, or JavaScript errors in console
+Works without internet after initial page load (CSV is cached)
+
+
+6. User Flow Diagram
+Homepage Visit
+User arrives at site
+    ↓
+Sees clear heading: "Hope Street Health - Medication Lookup"
+    ↓
+Sees large search box with placeholder: "Type medication name..."
+    ↓
+Sees example: "Try searching: Lisinopril, Metformin, or Zoloft"
+Search Process
+User types "lisin" in search box
+    ↓
+JavaScript filters CSV data in real-time
+    ↓
+Results appear showing "Lisinopril"
+    ↓
+User clicks on result or presses Enter
+Medication Information Display
+Full medication card displays with:
+    ↓
+📌 Generic Name: Lisinopril (large, bold)
+    ↓
+📌 Brand Names: Prinivil, Zestril
+    ↓
+✅ Primary Use: Controls high blood pressure
+    ↓
+💊 How to Take: Take once daily with or without food
+    ↓
+⚠️ Warnings: (red background) Do not stop suddenly. May cause dizziness.
+    ↓
+📋 Side Effects: Dry cough, dizziness, headache
+    ↓
+[Search Again] button returns to search
+Mobile-Specific Flow
+User on smartphone
+    ↓
+Search box automatically focuses (keyboard pops up)
+    ↓
+Large touch-friendly buttons (44px minimum)
+    ↓
+Scrollable medication card (no horizontal scroll)
+    ↓
+Easy-to-tap "Search Again" button at bottom
+Error Handling
+User types "asprin" (misspelled)
+    ↓
+System shows: "No medication found for 'asprin'"
+    ↓
+Suggestion: "Did you mean: Aspirin? Try searching common medications from the list below."
+    ↓
+Shows clickable list of all 10 available medications
+
+
+
+
+7. Design Guidelines
+Color Scheme (Accessible & Calming)
+Primary Blue: #2C5F8D (trust, healthcare)
+Warning Red: #C41E3A (important warnings)
+Success Green: #2D7D46 (safe/good information)
+Background: #F5F5F5 (easy on eyes)
+Text: #1A1A1A (high contrast)
+Typography
+Headings: 24px-32px, bold
+Body Text: 16px-18px, regular weight
+Warnings: 16px, bold, red background
+Font Family: System fonts (Arial, Helvetica, sans-serif)
+Layout
+Maximum width: 800px (easy to read, not too wide)
+Generous padding: 20px on all cards
+Spacing between elements: 16px minimum
+Buttons: Full width on mobile, auto width on desktop
