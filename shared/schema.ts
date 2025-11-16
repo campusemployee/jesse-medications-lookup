@@ -8,6 +8,7 @@ export interface Medication {
   howToTake: string;
   warnings: string;
   sideEffects: string;
+  source?: "curated" | "fda";
 }
 
 export const medicationSchema = z.object({
@@ -18,6 +19,7 @@ export const medicationSchema = z.object({
   howToTake: z.string(),
   warnings: z.string(),
   sideEffects: z.string(),
+  source: z.enum(["curated", "fda"]).optional(),
 });
 
 export type MedicationType = z.infer<typeof medicationSchema>;

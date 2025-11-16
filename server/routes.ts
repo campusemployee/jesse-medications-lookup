@@ -19,6 +19,27 @@ interface FDADrugLabel {
   adverse_reactions?: string[];
 }
 
+function extractText(field: string[] | undefined): string {
+  if (!field || field.length === 0) return "";
+  return field[0].replace(/<[^>]*>/g, "").trim().substring(0, 500);
+}
+
+function fdaResultToMedication(result: FDADrugLabel, queryName?: string): Medication {
+  const genericName = result.openfda?.generic_name?.[0] || queryName || "Unknown";
+  const brandNameArray = result.openfda?.brand_name ?? [];
+  const brandNames = brandNameArray.slice(0, 3).join(", ");
+  
+  return {
+    id: genericName.toLowerCase().replace(/\s+/g, "-"),
+    genericName: genericName,
+    brandNames: brandNames,
+    primaryUse: extractText(result.indications_and_usage) || "Consult healthcare provider for usage information",
+    howToTake: extractText(result.dosage_and_administration) || "Follow your doctor's instructions",
+    warnings: extractText(result.warnings) || "Consult your healthcare provider for warnings",
+    sideEffects: extractText(result.adverse_reactions) || "Consult your healthcare provider for side effect information",
+  };
+}
+
 async function fetchMedicationFromFDA(genericName: string): Promise<Medication | null> {
   try {
     const searchQuery = encodeURIComponent(`openfda.generic_name:"${genericName}"`);
@@ -37,30 +58,46 @@ async function fetchMedicationFromFDA(genericName: string): Promise<Medication |
       return null;
     }
     
-    const result: FDADrugLabel = data.results[0];
-    
-    const extractText = (field: string[] | undefined): string => {
-      if (!field || field.length === 0) return "";
-      return field[0].replace(/<[^>]*>/g, "").trim().substring(0, 500);
-    };
-    
-    const brandNameArray = result.openfda?.brand_name ?? [];
-    const brandNames = brandNameArray.slice(0, 3).join(", ");
-    
-    const medication: Medication = {
-      id: genericName.toLowerCase().replace(/\s+/g, "-"),
-      genericName: result.openfda?.generic_name?.[0] || genericName,
-      brandNames: brandNames,
-      primaryUse: extractText(result.indications_and_usage) || "Consult healthcare provider for usage information",
-      howToTake: extractText(result.dosage_and_administration) || "Follow your doctor's instructions",
-      warnings: extractText(result.warnings) || "Consult your healthcare provider for warnings",
-      sideEffects: extractText(result.adverse_reactions) || "Consult your healthcare provider for side effect information",
-    };
-    
-    return medication;
+    return fdaResultToMedication(data.results[0], genericName);
   } catch (error) {
     console.error(`Error fetching medication ${genericName} from FDA:`, error);
     return null;
+  }
+}
+
+async function searchMedicationsFromFDA(query: string, limit: number = 20): Promise<Medication[]> {
+  try {
+    if (!query || query.trim().length < 2) return [];
+    
+    const escapedQuery = query.replace(/"/g, '\\"');
+    const searchQuery = `(openfda.generic_name:"${escapedQuery}"*)+OR+(openfda.brand_name:"${escapedQuery}"*)`;
+    const apiKeyParam = OPENFDA_API_KEY ? `&api_key=${OPENFDA_API_KEY}` : "";
+    const url = `${OPENFDA_BASE_URL}?search=${encodeURIComponent(searchQuery)}&limit=${limit}${apiKeyParam}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`FDA search API error for "${query}": ${response.status}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    if (!data.results || data.results.length === 0) {
+      return [];
+    }
+    
+    const medications = data.results.map((result: FDADrugLabel) => fdaResultToMedication(result, query));
+    
+    const uniqueMeds = new Map<string, Medication>();
+    medications.forEach((med: Medication) => {
+      if (!uniqueMeds.has(med.id)) {
+        uniqueMeds.set(med.id, med);
+      }
+    });
+    
+    return Array.from(uniqueMeds.values());
+  } catch (error) {
+    console.error(`Error searching medications for "${query}":`, error);
+    return [];
   }
 }
 
@@ -124,7 +161,46 @@ function mergeMedicationData(fdaMed: Medication | null, csvMed: Medication | und
     howToTake: csvMed.howToTake,
     warnings: csvMed.warnings,
     sideEffects: csvMed.sideEffects,
+    source: "curated" as const,
   };
+}
+
+function mergeSearchResults(
+  curatedMeds: Medication[],
+  fdaResults: Medication[],
+  query: string
+): Medication[] {
+  const normalizedQuery = query.toLowerCase().trim();
+  
+  const curatedMap = new Map<string, Medication>();
+  curatedMeds.forEach(med => {
+    const normalizedGeneric = med.genericName.toLowerCase();
+    curatedMap.set(normalizedGeneric, med);
+    curatedMap.set(med.id, med);
+  });
+  
+  const matchingCurated = curatedMeds.filter(med => {
+    const genericMatch = med.genericName.toLowerCase().includes(normalizedQuery);
+    const brandMatch = med.brandNames.toLowerCase().includes(normalizedQuery);
+    return genericMatch || brandMatch;
+  }).map(med => ({ ...med, source: "curated" as const }));
+  
+  const fdaOnly = fdaResults.filter(fdaMed => {
+    const normalizedFdaGeneric = fdaMed.genericName.toLowerCase();
+    return !curatedMap.has(normalizedFdaGeneric) && !curatedMap.has(fdaMed.id);
+  }).map(fdaMed => {
+    const curatedMatch = Array.from(curatedMap.values()).find(curated =>
+      curated.genericName.toLowerCase() === fdaMed.genericName.toLowerCase()
+    );
+    
+    if (curatedMatch) {
+      return mergeMedicationData(fdaMed, curatedMatch)!;
+    }
+    
+    return { ...fdaMed, source: "fda" as const };
+  });
+  
+  return [...matchingCurated, ...fdaOnly];
 }
 
 async function loadMedicationsHybrid(): Promise<Medication[]> {
@@ -173,6 +249,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/medications/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      
+      if (!query || query.trim().length < 2) {
+        return res.json([]);
+      }
+      
+      const curatedMeds = await storage.getAllMedications();
+      const fdaResults = await searchMedicationsFromFDA(query, 20);
+      const mergedResults = mergeSearchResults(curatedMeds, fdaResults, query);
+      
+      res.json(mergedResults);
+    } catch (error) {
+      console.error("Search error:", error);
+      res.status(500).json({ error: "Failed to search medications" });
+    }
+  });
+
   app.get("/api/medications/:id", async (req, res) => {
     try {
       const medication = await storage.getMedicationById(req.params.id);
@@ -183,15 +278,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch medication" });
-    }
-  });
-
-  app.get("/api/medications/search/:query", async (req, res) => {
-    try {
-      const results = await storage.searchMedications(req.params.query);
-      res.json(results);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to search medications" });
     }
   });
 

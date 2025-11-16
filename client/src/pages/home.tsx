@@ -1,30 +1,52 @@
-import { useState, type KeyboardEvent } from "react";
+import { useState, useEffect, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, CheckCircle2, Pill, AlertTriangle, FileText } from "lucide-react";
+import { Search, CheckCircle2, Pill, AlertTriangle, FileText, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { Medication } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null);
 
-  const { data: medications, isLoading, isError } = useQuery<Medication[]>({
+  const { data: curatedMedications, isLoading: curatedLoading, isError: curatedError } = useQuery<Medication[]>({
     queryKey: ["/api/medications"],
   });
 
-  const filteredMedications = medications?.filter((med) =>
-    med.genericName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    med.brandNames.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  const { data: searchResults, isLoading: searchLoading, isError: searchError } = useQuery<Medication[]>({
+    queryKey: ["/api/medications/search", debouncedQuery],
+    queryFn: async () => {
+      if (!debouncedQuery || debouncedQuery.trim().length < 2) return [];
+      const response = await fetch(`/api/medications/search?q=${encodeURIComponent(debouncedQuery)}`);
+      if (!response.ok) throw new Error("Search failed");
+      return response.json();
+    },
+    enabled: debouncedQuery.trim().length >= 2,
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const displayMedications = searchQuery.trim().length >= 2 
+    ? searchResults || []
+    : curatedMedications || [];
+
+  const isLoading = searchQuery.trim().length >= 2 ? searchLoading : curatedLoading;
+  const isError = searchQuery.trim().length >= 2 ? searchError : curatedError;
 
   const handleSearchAgain = () => {
     setSelectedMedication(null);
   };
 
-  const allMedicationNames = medications?.map(med => med.genericName).slice(0, 5) || [];
+  const allMedicationNames = curatedMedications?.map(med => med.genericName).slice(0, 5) || [];
 
   const handleCardClick = (med: Medication) => {
     setSelectedMedication(med);
@@ -136,7 +158,7 @@ export default function Home() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
               <Input
                 type="search"
-                placeholder="Type medication name..."
+                placeholder="Search any medication..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-12 text-base"
@@ -146,7 +168,7 @@ export default function Home() {
               />
             </div>
             <p className="text-sm text-muted-foreground text-center">
-              Try searching: Lisinopril, Metformin, or Zoloft
+              Search for any medication by name or brand
             </p>
           </CardContent>
         </Card>
@@ -180,7 +202,7 @@ export default function Home() {
               </Button>
             </CardContent>
           </Card>
-        ) : searchQuery && filteredMedications.length === 0 ? (
+        ) : searchQuery && displayMedications.length === 0 ? (
           <Card className="shadow-md">
             <CardContent className="pt-6 space-y-4 text-center">
               <p className="text-base text-muted-foreground" data-testid="text-no-results">
@@ -197,7 +219,7 @@ export default function Home() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const med = medications?.find(m => m.genericName === name);
+                        const med = curatedMedications?.find((m: Medication) => m.genericName === name);
                         if (med) setSelectedMedication(med);
                       }}
                       className="min-h-9"
@@ -210,13 +232,13 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
-        ) : searchQuery && filteredMedications.length > 0 ? (
+        ) : displayMedications.length > 0 ? (
           <div className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground px-1">
-              Search Results ({filteredMedications.length})
+              {searchQuery ? `Search Results (${displayMedications.length})` : `Available Medications (${displayMedications.length})`}
             </h2>
             <div className="space-y-3">
-              {filteredMedications.map((med) => (
+              {displayMedications.map((med: Medication) => (
                 <Card
                   key={med.id}
                   role="button"
@@ -228,43 +250,17 @@ export default function Home() {
                   data-testid={`card-medication-${med.genericName.toLowerCase()}`}
                 >
                   <CardContent className="p-4">
-                    <h3 className="text-xl font-bold text-primary mb-1">
-                      {med.genericName}
-                    </h3>
-                    {med.brandNames && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {med.brandNames}
-                      </p>
-                    )}
-                    <p className="text-base text-foreground">
-                      {med.primaryUse}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ) : !searchQuery && medications && medications.length > 0 ? (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-foreground px-1">
-              Available Medications ({medications.length})
-            </h2>
-            <div className="space-y-3">
-              {medications.map((med) => (
-                <Card
-                  key={med.id}
-                  role="button"
-                  tabIndex={0}
-                  className="shadow-sm hover-elevate active-elevate-2 cursor-pointer transition-shadow focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                  onClick={() => handleCardClick(med)}
-                  onKeyDown={(e) => handleCardKeyDown(e, med)}
-                  aria-label={`View details for ${med.genericName}`}
-                  data-testid={`card-medication-${med.genericName.toLowerCase()}`}
-                >
-                  <CardContent className="p-4">
-                    <h3 className="text-xl font-bold text-primary mb-1">
-                      {med.genericName}
-                    </h3>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h3 className="text-xl font-bold text-primary">
+                        {med.genericName}
+                      </h3>
+                      {med.source === "curated" && (
+                        <Badge variant="secondary" className="flex items-center gap-1 shrink-0">
+                          <Star className="h-3 w-3" />
+                          Curated
+                        </Badge>
+                      )}
+                    </div>
                     {med.brandNames && (
                       <p className="text-sm text-muted-foreground mb-2">
                         {med.brandNames}
